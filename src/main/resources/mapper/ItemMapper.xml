@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.project2.mapper.ItemMapper">
+
+    <!-- 전체 조회 -->
+    <select id="findAll"
+            resultType="com.example.project2.domain.Item">
+
+        SELECT
+        item_id,
+        item_name,
+        total_quantity,
+        available_quantity
+        FROM items
+        ORDER BY item_id
+
+    </select>
+
+    <!-- 상세 조회 -->
+    <select id="findById"
+            resultType="com.example.project2.domain.Item">
+
+        SELECT
+        item_id,
+        item_name,
+        total_quantity,
+        available_quantity
+        FROM items
+        WHERE item_id = #{itemId}
+
+    </select>
+
+    <!-- 수정 및 삭제를 위한 행 잠금 조회 -->
+    <select id="findByIdForUpdate"
+            resultType="com.example.project2.domain.Item">
+
+        SELECT
+        item_id,
+        item_name,
+        total_quantity,
+        available_quantity
+        FROM items
+        WHERE item_id = #{itemId}
+        FOR UPDATE
+
+    </select>
+
+    <!-- 등록 -->
+    <insert id="insert"
+            useGeneratedKeys="true"
+            keyProperty="itemId"
+            keyColumn="item_id">
+
+        INSERT INTO items (
+        item_name,
+        total_quantity,
+        available_quantity
+        )
+        VALUES (
+        #{itemName},
+        #{totalQuantity},
+        #{availableQuantity}
+        )
+
+    </insert>
+
+    <!-- 수정 -->
+    <update id="update">
+
+        UPDATE items
+        SET
+        item_name = #{itemName},
+        total_quantity = #{totalQuantity},
+        available_quantity = #{availableQuantity}
+        WHERE item_id = #{itemId}
+
+    </update>
+
+    <!-- 삭제 -->
+    <delete id="deleteById">
+
+        DELETE FROM items
+        WHERE item_id = #{itemId}
+
+    </delete>
+
+    <!-- 대여 시 재고 차감 -->
+    <update id="decreaseAvailableQuantity">
+
+        UPDATE items
+        SET available_quantity = available_quantity - #{quantity}
+        WHERE item_id = #{itemId}
+        AND available_quantity >= #{quantity}
+
+    </update>
+
+    <!-- 반납 시 재고 복구 -->
+    <update id="increaseAvailableQuantity">
+
+        UPDATE items
+        SET available_quantity = available_quantity + #{quantity}
+        WHERE item_id = #{itemId}
+        AND available_quantity &lt;= total_quantity - #{quantity}
+
+    </update>
+
+</mapper>

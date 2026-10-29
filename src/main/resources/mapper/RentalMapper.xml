@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.project2.mapper.RentalMapper">
+
+    <!-- 공통 JOIN 및 검색 조건 -->
+    <sql id="rentalHistoryFromAndWhere">
+
+        FROM rentals r
+        INNER JOIN employees e
+            ON r.employee_id = e.employee_id
+        INNER JOIN items i
+            ON r.item_id = i.item_id
+
+        <where>
+
+            <!-- 직원 이름 검색 -->
+            <if test="employeeName != null">
+                AND e.employee_name ILIKE CONCAT('%', #{employeeName}, '%')
+            </if>
+
+            <!-- 사무용품 이름 검색 -->
+            <if test="itemName != null">
+                AND i.item_name ILIKE CONCAT('%', #{itemName}, '%')
+            </if>
+
+            <!-- 대여 중 -->
+            <if test="rentalStatus == 'RENTED'">
+                AND r.returned_at IS NULL
+            </if>
+
+            <!-- 반납 완료 -->
+            <if test="rentalStatus == 'RETURNED'">
+                AND r.returned_at IS NOT NULL
+            </if>
+
+        </where>
+
+    </sql>
+
+    <!-- 대여 등록 -->
+    <insert id="insert"
+            useGeneratedKeys="true"
+            keyProperty="rentalId"
+            keyColumn="rental_id">
+
+        INSERT INTO rentals (
+        employee_id,
+        item_id,
+        quantity
+        )
+        VALUES (
+        #{employeeId},
+        #{itemId},
+        #{quantity}
+        )
+
+    </insert>
+
+    <!-- 대여 상세 조회 -->
+    <select id="findById"
+            resultType="com.example.project2.domain.Rental">
+
+        SELECT
+        rental_id,
+        employee_id,
+        item_id,
+        quantity,
+        rented_at,
+        returned_at
+        FROM rentals
+        WHERE rental_id = #{rentalId}
+
+    </select>
+
+    <!-- 반납 완료 처리 -->
+    <update id="markReturned">
+
+        UPDATE rentals
+        SET returned_at = CURRENT_TIMESTAMP
+        WHERE rental_id = #{rentalId}
+        AND returned_at IS NULL
+
+    </update>
+
+    <!-- 검색 + 페이징 -->
+    <select id="searchHistoryPage"
+            resultType="com.example.project2.dto.RentalHistoryResponseDto">
+
+        SELECT
+            r.rental_id,
+            r.employee_id,
+            e.employee_name,
+            e.department,
+            r.item_id,
+            i.item_name,
+            r.quantity,
+            r.rented_at,
+            r.returned_at,
+            CASE
+                WHEN r.returned_at IS NULL THEN 'RENTED'
+                ELSE 'RETURNED'
+            END AS rental_status
+
+        <include refid="rentalHistoryFromAndWhere"/>
+
+        ORDER BY r.rental_id DESC
+
+        LIMIT #{size}
+        OFFSET #{offset}
+
+    </select>
+
+    <!-- 검색 결과 전체 건수 -->
+    <select id="countHistory"
+            resultType="java.lang.Long">
+
+        SELECT COUNT(*)
+
+        <include refid="rentalHistoryFromAndWhere"/>
+
+    </select>
+    <!-- 현재 대여 중인 기록 수 -->
+    <select id="countActiveByItemId"
+            resultType="java.lang.Long">
+
+        SELECT COUNT(*)
+        FROM rentals
+        WHERE item_id = #{itemId}
+        AND returned_at IS NULL
+
+    </select>
+
+    <!-- 전체 대여 이력 수 -->
+    <select id="countByItemId"
+            resultType="java.lang.Long">
+
+        SELECT COUNT(*)
+        FROM rentals
+        WHERE item_id = #{itemId}
+
+    </select>
+
+</mapper>
